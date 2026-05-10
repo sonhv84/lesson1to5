@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TOEIC Vocabulary - SaaS Learning (Pro Version)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --bg-color: #F3F4F6;
+            --surface: #FFFFFF;
+            --text-main: #111827;
+            --text-muted: #6B7280;
+            --border-color: #E5E7EB;
+            --sidebar-width: 280px;
+            --vi-color: #059669; /* Màu xanh lá cho tiếng việt */
+            --ex-vi-color: #4B5563; 
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
+
+        /* Sidebar */
+        .sidebar { width: var(--sidebar-width); background-color: var(--surface); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; }
+        .sidebar-header { padding: 24px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; }
+        .sidebar-header h2 { font-size: 1.25rem; font-weight: 700; color: var(--primary); }
+        .menu-list { list-style: none; padding: 16px 12px; overflow-y: auto; flex: 1; }
+        .menu-item { padding: 12px 16px; margin-bottom: 8px; border-radius: 8px; cursor: pointer; font-weight: 500; color: var(--text-muted); transition: all 0.2s ease; display: flex; align-items: center; }
+        .menu-item:hover { background-color: #F9FAFB; color: var(--text-main); }
+        .menu-item.active { background-color: #EEF2FF; color: var(--primary); }
+
+        /* Main Content */
+        .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow-y: auto; position: relative; }
+        .topbar { height: 73px; background-color: var(--surface); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 32px; position: sticky; top: 0; z-index: 10; }
+        .topbar h1 { font-size: 1.5rem; font-weight: 600; }
+        
+        .view-controls { display: flex; gap: 10px; }
+        .btn { padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--surface); cursor: pointer; font-weight: 500; transition: 0.2s; }
+        .btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .btn:hover:not(.active) { background: #F9FAFB; }
+
+        .content { padding: 32px; flex: 1; display: flex; flex-direction: column; }
+
+        /* List View */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 24px; }
+        .flatcard { background-color: var(--surface); border-radius: 12px; padding: 24px; border: 1px solid var(--border-color); box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 12px; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .flatcard:hover { transform: translateY(-4px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .word { font-size: 1.4rem; font-weight: 700; color: var(--text-main); text-transform: capitalize; }
+        .speak-btn { background-color: #EEF2FF; border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.1rem; color: var(--primary); transition: 0.2s; flex-shrink: 0;}
+        .speak-btn:hover { background-color: #E0E7FF; transform: scale(1.05); }
+        .lexical-info { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;}
+        .phonetics { font-family: 'Courier New', Courier, monospace; color: var(--primary); font-size: 0.95rem; }
+        .pos { padding: 2px 10px; border-radius: 12px; background-color: #F3F4F6; color: var(--text-muted); font-size: 0.8rem; font-style: italic; font-weight: 500; }
+        .vi-meaning { font-size: 1.1rem; font-weight: 600; color: var(--vi-color); margin-top: 4px; }
+        .definition { font-size: 0.95rem; line-height: 1.5; color: var(--text-main); padding-bottom: 8px; border-bottom: 1px dashed var(--border-color);}
+        
+        .examples-container { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
+        .example-item { border-left: 3px solid var(--primary); padding-left: 12px; }
+        .ex-en { font-size: 0.9rem; font-style: italic; color: var(--text-main); margin-bottom: 4px; line-height: 1.4;}
+        .ex-vi { font-size: 0.85rem; color: var(--ex-vi-color); line-height: 1.4;}
+
+        /* Quizlet Mode */
+        .quizlet-container { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 800px; margin: 0 auto; flex: 1; }
+        .quizlet-settings { display: flex; gap: 15px; margin-bottom: 24px; background: var(--surface); padding: 12px 24px; border-radius: 8px; border: 1px solid var(--border-color); }
+        .quizlet-settings select { padding: 6px 12px; border-radius: 4px; border: 1px solid var(--border-color); outline: none; font-family: inherit; }
+        
+        .flashcard-scene { width: 100%; height: 500px; perspective: 1000px; cursor: pointer; margin-bottom: 24px; }
+        .flashcard-inner { width: 100%; height: 100%; transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1); transform-style: preserve-3d; position: relative; }
+        .flashcard-scene.is-flipped .flashcard-inner { transform: rotateX(180deg); }
+        
+        .flashcard-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; background: var(--surface); border-radius: 16px; border: 2px solid var(--border-color); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; text-align: center; overflow-y: auto;}
+        .flashcard-back { transform: rotateX(180deg); background: #F9FAFB; justify-content: flex-start; text-align: left; align-items: flex-start; padding: 30px 40px;}
+        
+        .fc-word { font-size: 3rem; font-weight: 700; color: var(--text-main); margin-bottom: 16px; text-transform: capitalize;}
+        .fc-vi { font-size: 2rem; font-weight: 700; color: var(--vi-color); margin-bottom: 10px;}
+        .fc-phonetics { font-size: 1.2rem; color: var(--primary); margin-bottom: 15px; font-family: monospace; }
+        .fc-def { font-size: 1.05rem; color: var(--text-muted); margin-bottom: 20px; width: 100%; border-bottom: 1px solid var(--border-color); padding-bottom: 15px;}
+        
+        .fc-audio { position: absolute; top: 20px; right: 20px; background: #EEF2FF; border: none; border-radius: 50%; width: 44px; height: 44px; font-size: 1.3rem; cursor: pointer; color: var(--primary); transition: 0.2s;}
+        .fc-audio:hover { background: #E0E7FF; transform: scale(1.1); }
+
+        .quizlet-controls { display: flex; align-items: center; gap: 20px; }
+        .control-btn { background: var(--surface); border: 1px solid var(--border-color); padding: 12px 24px; border-radius: 50px; font-weight: 600; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 8px; }
+        .control-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+        .progress-text { font-weight: 600; color: var(--text-muted); }
+
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h2>📘 TOEIC Builder</h2>
+        </div>
+        <ul class="menu-list" id="sidebar-menu"></ul>
+    </aside>
+
+    <main class="main-wrapper">
+        <header class="topbar">
+            <h1 id="main-title">Select a Lesson</h1>
+            <div class="view-controls">
+                <button class="btn active" id="btn-list" onclick="switchView('list')">📄 Danh sách</button>
+                <button class="btn" id="btn-quizlet" onclick="switchView('quizlet')">🗂️ Thẻ ghi nhớ (Quizlet)</button>
+            </div>
+        </header>
+
+        <section class="content">
+            <div class="grid" id="word-grid"></div>
+
+            <div class="quizlet-container" id="quizlet-view">
+                <div class="quizlet-settings">
+                    <label><strong>Chế độ lật thẻ:</strong></label>
+                    <select id="card-mode" onchange="renderFlashcard()">
+                        <option value="en-vi">Anh ➔ Việt</option>
+                        <option value="vi-en">Việt ➔ Anh</option>
+                        <option value="mixed">Lẫn lộn (Mixed)</option>
+                    </select>
+                </div>
+
+                <div class="flashcard-scene" id="flashcard" onclick="flipCard()">
+                    <div class="flashcard-inner" id="flashcard-inner">
+                        <div class="flashcard-face flashcard-front" id="fc-front"></div>
+                        <div class="flashcard-face flashcard-back" id="fc-back"></div>
+                    </div>
+                </div>
+
+                <div class="quizlet-controls">
+                    <button class="control-btn" onclick="prevCard(); event.stopPropagation();">⬅️ Trước</button>
+                    <span class="progress-text" id="fc-progress">1 / 12</span>
+                    <button class="control-btn" onclick="nextCard(); event.stopPropagation();">Sau ➡️</button>
+                </div>
+                <p style="margin-top: 16px; color: var(--text-muted); font-size: 0.85rem;">Mẹo: Click vào thẻ hoặc nhấn Phím Cách (Space) để lật. Dùng phím ⬅️ ➡️ để chuyển từ.</p>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // DATABASE UPDATE: Thêm 2 ví dụ và có dịch nghĩa tiếng Việt cho từng ví dụ
+        const toeicData = [
+            {
+                id: 1, title: "Lesson 1: Contracts",
+                words: [
+                    { word: "abide by", vi: "tuân theo, tuân thủ", phonetics: "/əˈbaɪd baɪ/", pos: "v.", def: "to comply with; to conform", 
+                      examples: [
+                          { en: "The two parties agreed to abide by the judge's decision.", vi: "Hai bên đã đồng ý tuân theo quyết định của thẩm phán." },
+                          { en: "Employees must abide by the company's strict dress code.", vi: "Nhân viên phải tuân thủ quy định trang phục nghiêm ngặt của công ty." }
+                      ] 
+                    },
+                    { word: "agreement", vi: "hợp đồng, thỏa thuận", phonetics: "/əˈɡriːmənt/", pos: "n.", def: "a mutual arrangement, a contract", 
+                      examples: [
+                          { en: "According to the agreement, the caterer will also supply the flowers.", vi: "Theo thỏa thuận, nhà cung cấp thực phẩm cũng sẽ cung cấp hoa." },
+                          { en: "We finally reached an agreement on the terms of the contract.", vi: "Cuối cùng chúng tôi đã đạt được thỏa thuận về các điều khoản của hợp đồng." }
+                      ] 
+                    },
+                    { word: "assurance", vi: "sự đảm bảo, quả quyết", phonetics: "/əˈʃʊərəns/", pos: "n.", def: "a guarantee; confidence", 
+                      examples: [
+                          { en: "The sales associate gave his assurance that the missing keyboard would be replaced.", vi: "Nhân viên bán hàng đã đảm bảo rằng bàn phím bị thiếu sẽ được thay thế." },
+                          { en: "We need some assurance that the project will be completed on time.", vi: "Chúng tôi cần một số đảm bảo rằng dự án sẽ được hoàn thành đúng hạn." }
+                      ] 
+                    },
+                    { word: "cancellation", vi: "sự hủy bỏ", phonetics: "/ˌkænsəˈleɪʃn/", pos: "n.", def: "annulment; stopping", 
+                      examples: [
+                          { en: "The cancellation clause appears at the back of the contract.", vi: "Điều khoản hủy bỏ xuất hiện ở mặt sau của hợp đồng." },
+                          { en: "Flight cancellations are common during heavy snowstorms.", vi: "Việc hủy chuyến bay rất phổ biến trong các trận bão tuyết lớn." }
+                      ] 
+                    },
+                    { word: "determine", vi: "quyết định, xác định", phonetics: "/dɪˈtɜːmɪn/", pos: "v.", def: "to find out; to influence", 
+                      examples: [
+                          { en: "The skill of the union bargainers will determine whether the plant will open.", vi: "Kỹ năng của những người thương lượng công đoàn sẽ quyết định việc nhà máy có mở cửa hay không." },
+                          { en: "We need to determine the exact cost of the new equipment.", vi: "Chúng ta cần xác định chi phí chính xác của thiết bị mới." }
+                      ] 
+                    },
+                    { word: "engage", vi: "tham gia, cam kết", phonetics: "/ɪnˈɡeɪdʒ/", pos: "v.", def: "participate; involve", 
+                      examples: [
+                          { en: "He engaged us in a fascinating discussion about current business law.", vi: "Anh ấy đã lôi cuốn chúng tôi vào một cuộc thảo luận thú vị về luật kinh doanh hiện hành." },
+                          { en: "The company engages in various marketing activities.", vi: "Công ty tham gia vào nhiều hoạt động tiếp thị khác nhau." }
+                      ] 
+                    },
+                    { word: "establish", vi: "thành lập, thiết lập", phonetics: "/ɪˈstæblɪʃ/", pos: "v.", def: "to institute permanently; to bring about", 
+                      examples: [
+                          { en: "The merger of the two companies established a powerful new corporation.", vi: "Việc sáp nhập hai công ty đã tạo ra một tập đoàn mới hùng mạnh." },
+                          { en: "Our goal is to establish long-term relationships with our clients.", vi: "Mục tiêu của chúng tôi là thiết lập mối quan hệ lâu dài với khách hàng." }
+                      ] 
+                    },
+                    { word: "obligate", vi: "bắt buộc", phonetics: "/ˈɒblɪɡeɪt/", pos: "v.", def: "to bind legally or morally", 
+                      examples: [
+                          { en: "The contractor was obligated by the contract to work 40 hours a week.", vi: "Nhà thầu bị ràng buộc bởi hợp đồng phải làm việc 40 giờ một tuần." },
+                          { en: "I felt obligated to speak up during the meeting.", vi: "Tôi cảm thấy có nghĩa vụ phải lên tiếng trong cuộc họp." }
+                      ] 
+                    },
+                    { word: "party", vi: "bên (trong hợp đồng/thỏa thuận)", phonetics: "/ˈpɑːti/", pos: "n.", def: "a person or group participating in an action", 
+                      examples: [
+                          { en: "The parties agreed to a settlement in their contract dispute.", vi: "Các bên đã đồng ý giải quyết trong vụ tranh chấp hợp đồng của họ." },
+                          { en: "A third party was hired to evaluate the company's finances.", vi: "Một bên thứ ba đã được thuê để đánh giá tài chính của công ty." }
+                      ] 
+                    },
+                    { word: "provision", vi: "điều khoản, sự cung cấp", phonetics: "/prəˈvɪʒn/", pos: "n.", def: "a measure taken beforehand; a stipulation", 
+                      examples: [
+                          { en: "The contract contains a provision to deal with how payments are made.", vi: "Hợp đồng chứa một điều khoản để xử lý cách thức thanh toán." },
+                          { en: "We have made provisions for unexpected expenses.", vi: "Chúng tôi đã dự phòng (chuẩn bị) cho các chi phí đột xuất." }
+                      ] 
+                    },
+                    { word: "resolve", vi: "giải quyết", phonetics: "/rɪˈzɒlv/", pos: "v.", def: "to deal with successfully", 
+                      examples: [
+                          { en: "The mediator was able to resolve the problem to everyone's satisfaction.", vi: "Người hòa giải đã có thể giải quyết vấn đề làm hài lòng tất cả mọi người." },
+                          { en: "The IT department resolved the server issue within an hour.", vi: "Phòng CNTT đã giải quyết sự cố máy chủ trong vòng một giờ." }
+                      ] 
+                    },
+                    { word: "specific", vi: "cụ thể, rành mạch", phonetics: "/spəˈsɪfɪk/", pos: "adj.", def: "particular", 
+                      examples: [
+                          { en: "In a contract, one specific word can change the meaning dramatically.", vi: "Trong một hợp đồng, một từ cụ thể có thể làm thay đổi ý nghĩa một cách đáng kể." },
+                          { en: "Could you be more specific about your business plan?", vi: "Bạn có thể nói cụ thể hơn về kế hoạch kinh doanh của bạn được không?" }
+                      ] 
+                    }
+                ]
+            },
+            {
+                id: 2, title: "Lesson 2: Marketing",
+                words: [
+                    { word: "attract", vi: "thu hút", phonetics: "/əˈtrækt/", pos: "v.", def: "to draw by appeal", 
+                      examples: [
+                          { en: "The display attracted a number of people at the convention.", vi: "Khu vực trưng bày đã thu hút rất nhiều người tại hội nghị." },
+                          { en: "High salaries attract many qualified applicants.", vi: "Mức lương cao thu hút nhiều ứng viên đủ tiêu chuẩn." }
+                      ] 
+                    },
+                    { word: "compare", vi: "so sánh", phonetics: "/kəmˈpeə(r)/", pos: "v.", def: "to examine similarities and differences", 
+                      examples: [
+                          { en: "Once the customer compared the two products, her choice was easy.", vi: "Sau khi khách hàng so sánh hai sản phẩm, sự lựa chọn của cô ấy trở nên dễ dàng." },
+                          { en: "Let's compare this quarter's sales with the previous one.", vi: "Hãy so sánh doanh số quý này với quý trước." }
+                      ] 
+                    },
+                    { word: "competition", vi: "sự cạnh tranh, cuộc thi", phonetics: "/ˌkɒmpəˈtɪʃn/", pos: "n.", def: "a contest or struggle", 
+                      examples: [
+                          { en: "In the competition for afternoon diners, Hector's has come out on top.", vi: "Trong cuộc cạnh tranh giành khách ăn chiều, nhà hàng Hector's đã vươn lên dẫn đầu." },
+                          { en: "There is fierce competition among smartphone manufacturers.", vi: "Có sự cạnh tranh khốc liệt giữa các nhà sản xuất điện thoại thông minh." }
+                      ] 
+                    },
+                    { word: "consume", vi: "tiêu thụ, tiêu tốn", phonetics: "/kənˈsjuːm/", pos: "v.", def: "to absorb; to use up", 
+                      examples: [
+                          { en: "The business plans consumed all of Fritz's attention this fall.", vi: "Các kế hoạch kinh doanh đã tiêu tốn toàn bộ sự chú ý của Fritz vào mùa thu này." },
+                          { en: "Our new air conditioner consumes much less electricity.", vi: "Máy điều hòa mới của chúng tôi tiêu thụ ít điện năng hơn nhiều." }
+                      ] 
+                    },
+                    { word: "convince", vi: "thuyết phục", phonetics: "/kənˈvɪns/", pos: "v.", def: "to bring to believe by argument", 
+                      examples: [
+                          { en: "Before a business can convince customers, it must convince its marketing staff.", vi: "Trước khi một doanh nghiệp có thể thuyết phục khách hàng, nó phải thuyết phục nhân viên tiếp thị của mình." },
+                          { en: "He convinced the board of directors to invest in the new project.", vi: "Ông ấy đã thuyết phục hội đồng quản trị đầu tư vào dự án mới." }
+                      ] 
+                    },
+                    { word: "currently", vi: "hiện tại", phonetics: "/ˈkʌrəntli/", pos: "adv.", def: "happening at the present time", 
+                      examples: [
+                          { en: "We are currently exploring plans to update the MX3 model.", vi: "Chúng tôi hiện đang khám phá các kế hoạch để cập nhật mô hình MX3." },
+                          { en: "Currently, she is working as a marketing director.", vi: "Hiện tại, cô ấy đang làm giám đốc tiếp thị." }
+                      ] 
+                    },
+                    { word: "fad", vi: "mốt nhất thời", phonetics: "/fæd/", pos: "n.", def: "a practice followed enthusiastically for a short time", 
+                      examples: [
+                          { en: "The mini dress was a fad once thought to be finished, but now it is making a comeback.", vi: "Váy mini từng là một mốt nhất thời được cho là đã kết thúc, nhưng nay nó đang trở lại." },
+                          { en: "Is this new social network just a passing fad?", vi: "Mạng xã hội mới này có phải chỉ là một trào lưu nhất thời?" }
+                      ] 
+                    },
+                    { word: "inspiration", vi: "nguồn cảm hứng", phonetics: "/ˌɪnspəˈreɪʃn/", pos: "n.", def: "a thing or person that arouses a feeling", 
+                      examples: [
+                          { en: "His work is an inspiration to the marketing department.", vi: "Công việc của anh ấy là nguồn cảm hứng cho bộ phận tiếp thị." },
+                          { en: "The designer drew inspiration from traditional Japanese art.", vi: "Nhà thiết kế lấy cảm hứng từ nghệ thuật truyền thống của Nhật Bản." }
+                      ] 
+                    },
+                    { word: "market", vi: "tiếp thị (động từ), thị trường (danh từ)", phonetics: "/ˈmɑːkɪt/", pos: "v.", def: "the course of buying and selling a product", 
+                      examples: [
+                          { en: "When Omar first began making his chutneys, he marketed them door-to-door.", vi: "Khi Omar mới bắt đầu làm tương ớt, anh ấy đã tiếp thị chúng tận nhà." },
+                          { en: "We need to market our products more aggressively.", vi: "Chúng ta cần tiếp thị sản phẩm của mình một cách mạnh mẽ hơn." }
+                      ] 
+                    },
+                    { word: "persuasion", vi: "sự thuyết phục", phonetics: "/pəˈsweɪʒn/", pos: "n.", def: "the power to influence", 
+                      examples: [
+                          { en: "The seminar teaches techniques of persuasion to increase sales.", vi: "Buổi hội thảo dạy các kỹ thuật thuyết phục để tăng doanh số." },
+                          { en: "It took a lot of persuasion to get her to sign the contract.", vi: "Phải mất rất nhiều công sức thuyết phục mới khiến cô ấy ký hợp đồng." }
+                      ] 
+                    },
+                    { word: "productive", vi: "có năng suất, hiệu quả", phonetics: "/prəˈdʌktɪv/", pos: "adj.", def: "constructive; high yield", 
+                      examples: [
+                          { en: "The unproductive sales meeting brought many staff complaints.", vi: "Cuộc họp bán hàng kém hiệu quả đã mang lại nhiều lời phàn nàn từ nhân viên." },
+                          { en: "We had a very productive discussion regarding the new marketing strategy.", vi: "Chúng tôi đã có một cuộc thảo luận rất hiệu quả về chiến lược tiếp thị mới." }
+                      ] 
+                    },
+                    { word: "satisfaction", vi: "sự hài lòng", phonetics: "/ˌsætɪsˈfækʃn/", pos: "n.", def: "happiness", 
+                      examples: [
+                          { en: "Your satisfaction is guaranteed or you'll get your money back.", vi: "Sự hài lòng của bạn được đảm bảo hoặc bạn sẽ được hoàn lại tiền." },
+                          { en: "Customer satisfaction is our top priority.", vi: "Sự hài lòng của khách hàng là ưu tiên hàng đầu của chúng tôi." }
+                      ] 
+                    }
+                ]
+            },
+            {
+                id: 3, title: "Lesson 3: Warranties",
+                words: [
+                    { word: "characteristic", vi: "đặc điểm, đặc trưng", phonetics: "/ˌkærəktəˈrɪstɪk/", pos: "adj.", def: "revealing of individual traits", 
+                      examples: [
+                          { en: "The cooking pot has features characteristic of the brand.", vi: "Cái nồi nấu ăn có những tính năng đặc trưng của thương hiệu đó." },
+                          { en: "A key characteristic of this material is its durability.", vi: "Một đặc điểm chính của vật liệu này là độ bền của nó." }
+                      ] 
+                    },
+                    { word: "consequence", vi: "hậu quả, hệ quả", phonetics: "/ˈkɒnsɪkwəns/", pos: "n.", def: "that which follows necessarily", 
+                      examples: [
+                          { en: "The consequence of not following instructions is that the warranty is invalidated.", vi: "Hậu quả của việc không làm theo hướng dẫn là bảo hành bị mất hiệu lực." },
+                          { en: "He must face the consequences of his poor decisions.", vi: "Anh ta phải đối mặt với hậu quả từ những quyết định tồi tệ của mình." }
+                      ] 
+                    },
+                    { word: "consider", vi: "cân nhắc, xem xét", phonetics: "/kənˈsɪdə(r)/", pos: "v.", def: "to think about carefully", 
+                      examples: [
+                          { en: "After considering all the options, Della decided to buy a used car.", vi: "Sau khi cân nhắc tất cả các lựa chọn, Della quyết định mua một chiếc xe cũ." },
+                          { en: "Please consider our proposal before making a final decision.", vi: "Vui lòng xem xét đề xuất của chúng tôi trước khi đưa ra quyết định cuối cùng." }
+                      ] 
+                    },
+                    { word: "cover", vi: "bao bọc, đài thọ, bao gồm", phonetics: "/ˈkʌvə(r)/", pos: "v.", def: "to provide protection against", 
+                      examples: [
+                          { en: "Will my medical insurance cover this surgery?", vi: "Bảo hiểm y tế của tôi có đài thọ cho ca phẫu thuật này không?" },
+                          { en: "The warranty covers parts and labor for one year.", vi: "Bảo hành bao gồm phụ tùng và nhân công trong một năm." }
+                      ] 
+                    },
+                    { word: "expiration", vi: "sự hết hạn", phonetics: "/ˌekspəˈreɪʃn/", pos: "n.", def: "the end", 
+                      examples: [
+                          { en: "Have you checked the expiration date on this yogurt?", vi: "Bạn đã kiểm tra ngày hết hạn trên hộp sữa chua này chưa?" },
+                          { en: "The expiration of the warranty period is next month.", vi: "Thời hạn bảo hành sẽ kết thúc vào tháng tới." }
+                      ] 
+                    },
+                    { word: "frequently", vi: "thường xuyên", phonetics: "/ˈfriːkwəntli/", pos: "adv.", def: "occurring commonly", 
+                      examples: [
+                          { en: "Appliances frequently come with a one-year warranty.", vi: "Các thiết bị gia dụng thường xuyên đi kèm với bảo hành một năm." },
+                          { en: "He travels frequently for business.", vi: "Anh ấy thường xuyên đi công tác." }
+                      ] 
+                    },
+                    { word: "imply", vi: "ngụ ý, hàm ý", phonetics: "/ɪmˈplaɪ/", pos: "v.", def: "to indicate by inference", 
+                      examples: [
+                          { en: "The guarantee implied that all damages were covered for one year.", vi: "Giấy bảo lãnh ngụ ý rằng tất cả các hư hỏng đều được chi trả trong một năm." },
+                          { en: "Are you implying that I made a mistake?", vi: "Bạn đang ngụ ý rằng tôi đã phạm sai lầm sao?" }
+                      ] 
+                    },
+                    { word: "promise", vi: "lời hứa, hứa hẹn", phonetics: "/ˈprɒmɪs/", pos: "n.", def: "a pledge, a commitment", 
+                      examples: [
+                          { en: "A warranty is a promise the manufacturer makes to the consumer.", vi: "Bảo hành là một lời hứa mà nhà sản xuất dành cho người tiêu dùng." },
+                          { en: "They promised to deliver the goods by Friday.", vi: "Họ đã hứa sẽ giao hàng trước thứ Sáu." }
+                      ] 
+                    },
+                    { word: "protect", vi: "bảo vệ", phonetics: "/prəˈtekt/", pos: "v.", def: "to guard", 
+                      examples: [
+                          { en: "Consumer laws are designed to protect the public.", vi: "Luật tiêu dùng được thiết kế để bảo vệ công chúng." },
+                          { en: "This case will protect your phone from scratches.", vi: "Chiếc ốp này sẽ bảo vệ điện thoại của bạn khỏi các vết xước." }
+                      ] 
+                    },
+                    { word: "reputation", vi: "danh tiếng, uy tín", phonetics: "/ˌrepjuˈteɪʃn/", pos: "n.", def: "the overall quality of character", 
+                      examples: [
+                          { en: "The reputation of its products was the most important asset it had.", vi: "Danh tiếng về các sản phẩm là tài sản quan trọng nhất mà công ty có." },
+                          { en: "The restaurant has a good reputation for its fresh seafood.", vi: "Nhà hàng có danh tiếng tốt về hải sản tươi sống." }
+                      ] 
+                    },
+                    { word: "require", vi: "yêu cầu, đòi hỏi", phonetics: "/rɪˈkwaɪə(r)/", pos: "v.", def: "to deem necessary or essential", 
+                      examples: [
+                          { en: "The law requires that each item clearly display the warranty information.", vi: "Luật pháp yêu cầu mỗi mặt hàng phải hiển thị rõ ràng thông tin bảo hành." },
+                          { en: "This job requires a high level of technical skill.", vi: "Công việc này đòi hỏi trình độ kỹ năng kỹ thuật cao." }
+                      ] 
+                    },
+                    { word: "variety", vi: "sự đa dạng, nhiều loại", phonetics: "/vəˈraɪəti/", pos: "n.", def: "many different kinds", 
+                      examples: [
+                          { en: "There's a variety of standard terms that you'll find in warranties.", vi: "Có nhiều loại điều khoản tiêu chuẩn mà bạn sẽ tìm thấy trong các bảo hành." },
+                          { en: "The shop offers a wide variety of electronic devices.", vi: "Cửa hàng cung cấp đa dạng các loại thiết bị điện tử." }
+                      ] 
+                    }
+                ]
+            },
+            {
+                id: 4, title: "Lesson 4: Business Planning",
+                words: [
+                    { word: "address", vi: "giải quyết, hướng tới", phonetics: "/əˈdres/", pos: "v.", def: "to direct to the attention of", 
+                      examples: [
+                          { en: "Marco's business plan addresses the needs of small business owners.", vi: "Kế hoạch kinh doanh của Marco hướng tới việc giải quyết nhu cầu của các chủ doanh nghiệp nhỏ." },
+                          { en: "We need to address the issue of employee turnover immediately.", vi: "Chúng ta cần giải quyết vấn đề nhân viên nghỉ việc ngay lập tức." }
+                      ] 
+                    },
+                    { word: "avoid", vi: "tránh, né tránh", phonetics: "/əˈvɔɪd/", pos: "v.", def: "to stay clear of", 
+                      examples: [
+                          { en: "To avoid going out of business, owners should prepare a proper plan.", vi: "Để tránh việc phá sản, các chủ sở hữu nên chuẩn bị một kế hoạch bài bản." },
+                          { en: "They took a different route to avoid the heavy traffic.", vi: "Họ đã đi một tuyến đường khác để tránh tắc đường." }
+                      ] 
+                    },
+                    { word: "demonstrate", vi: "chứng minh, giải thích", phonetics: "/ˈdemənstreɪt/", pos: "v.", def: "to show clearly", 
+                      examples: [
+                          { en: "Alban's plan demonstrated that he had put a lot of thought into his dream.", vi: "Kế hoạch của Alban đã chứng minh rằng anh ấy đã suy nghĩ rất nhiều về giấc mơ của mình." },
+                          { en: "The sales rep demonstrated how to use the new software.", vi: "Đại diện bán hàng đã trình diễn cách sử dụng phần mềm mới." }
+                      ] 
+                    },
+                    { word: "develop", vi: "phát triển, hình thành", phonetics: "/dɪˈveləp/", pos: "v.", def: "to expand, progress", 
+                      examples: [
+                          { en: "Lily developed her ideas into a business plan.", vi: "Lily đã phát triển những ý tưởng của mình thành một kế hoạch kinh doanh." },
+                          { en: "The company aims to develop new products for the Asian market.", vi: "Công ty đặt mục tiêu phát triển các sản phẩm mới cho thị trường châu Á." }
+                      ] 
+                    },
+                    { word: "evaluate", vi: "đánh giá", phonetics: "/ɪˈvæljueɪt/", pos: "v.", def: "to determine the value", 
+                      examples: [
+                          { en: "It's important to evaluate your competition when making a business plan.", vi: "Điều quan trọng là phải đánh giá đối thủ cạnh tranh của bạn khi lập kế hoạch kinh doanh." },
+                          { en: "Managers must evaluate their employees' performance annually.", vi: "Các nhà quản lý phải đánh giá hiệu suất làm việc của nhân viên hàng năm." }
+                      ] 
+                    },
+                    { word: "gather", vi: "thu thập, tập hợp", phonetics: "/ˈɡæðə(r)/", pos: "v.", def: "to accumulate", 
+                      examples: [
+                          { en: "We gathered information for our plan from many sources.", vi: "Chúng tôi đã thu thập thông tin cho kế hoạch của mình từ nhiều nguồn." },
+                          { en: "The manager gathered the team for a quick meeting.", vi: "Người quản lý đã tập hợp nhóm lại để họp nhanh." }
+                      ] 
+                    },
+                    { word: "offer", vi: "cung cấp, đề nghị", phonetics: "/ˈɒfə(r)/", pos: "n.", def: "a proposal", 
+                      examples: [
+                          { en: "Devon accepted our offer to write the business plan.", vi: "Devon đã chấp nhận lời đề nghị viết kế hoạch kinh doanh của chúng tôi." },
+                          { en: "The store offers a 10% discount to new customers.", vi: "Cửa hàng cung cấp chiết khấu 10% cho khách hàng mới." }
+                      ] 
+                    },
+                    { word: "primarily", vi: "chủ yếu, trước hết", phonetics: "/praɪˈmerəli/", pos: "adv.", def: "first; most importantly", 
+                      examples: [
+                          { en: "We are primarily concerned with convincing the board of directors.", vi: "Chúng tôi chủ yếu quan tâm đến việc thuyết phục hội đồng quản trị." },
+                          { en: "The course is primarily designed for beginners.", vi: "Khóa học này chủ yếu được thiết kế cho người mới bắt đầu." }
+                      ] 
+                    },
+                    { word: "risk", vi: "rủi ro", phonetics: "/rɪsk/", pos: "n.", def: "the chance of loss", 
+                      examples: [
+                          { en: "The primary risk for most start-ups is insufficient capital.", vi: "Rủi ro chính của hầu hết các công ty khởi nghiệp là thiếu vốn." },
+                          { en: "Investing in stocks always involves a certain level of risk.", vi: "Đầu tư vào cổ phiếu luôn đi kèm với một mức độ rủi ro nhất định." }
+                      ] 
+                    },
+                    { word: "strategy", vi: "chiến lược", phonetics: "/ˈstrætədʒi/", pos: "n.", def: "a plan of action", 
+                      examples: [
+                          { en: "A business plan is a strategy for running a business.", vi: "Kế hoạch kinh doanh là một chiến lược để điều hành một doanh nghiệp." },
+                          { en: "The marketing team discussed a new strategy to increase sales.", vi: "Đội ngũ tiếp thị đã thảo luận về một chiến lược mới để tăng doanh số." }
+                      ] 
+                    },
+                    { word: "strong", vi: "mạnh mẽ, vững chắc", phonetics: "/strɒŋ/", pos: "adj.", def: "powerful", 
+                      examples: [
+                          { en: "The professor made a strong argument for a good business plan.", vi: "Giáo sư đã đưa ra một lập luận mạnh mẽ về giá trị của một kế hoạch kinh doanh tốt." },
+                          { en: "The company has a strong financial background.", vi: "Công ty có một nền tảng tài chính vững chắc." }
+                      ] 
+                    },
+                    { word: "substitution", vi: "sự thay thế", phonetics: "/ˌsʌbstɪˈtjuːʃn/", pos: "n.", def: "replacement", 
+                      examples: [
+                          { en: "There is no substitution for hard work.", vi: "Không có sự thay thế nào cho sự làm việc chăm chỉ." },
+                          { en: "The recipe allows the substitution of honey for sugar.", vi: "Công thức cho phép thay thế đường bằng mật ong." }
+                      ] 
+                    }
+                ]
+            },
+            {
+                id: 5, title: "Lesson 5: Conferences",
+                words: [
+                    { word: "accommodate", vi: "đáp ứng, chứa được", phonetics: "/əˈkɒmədeɪt/", pos: "v.", def: "to fit; provide with something needed", 
+                      examples: [
+                          { en: "The meeting room was large enough to accommodate the groups.", vi: "Phòng họp đủ lớn để chứa các nhóm." },
+                          { en: "We will do our best to accommodate your special requests.", vi: "Chúng tôi sẽ cố gắng hết sức để đáp ứng các yêu cầu đặc biệt của bạn." }
+                      ] 
+                    },
+                    { word: "arrangement", vi: "sự sắp xếp, chuẩn bị", phonetics: "/əˈreɪndʒmənt/", pos: "n.", def: "the plan or organization", 
+                      examples: [
+                          { en: "The travel arrangements were taken care of by Sara.", vi: "Các sự sắp xếp cho chuyến đi đã được Sara lo liệu." },
+                          { en: "We have made an arrangement to meet at 10 AM.", vi: "Chúng tôi đã có sự sắp xếp để gặp nhau lúc 10 giờ sáng." }
+                      ] 
+                    },
+                    { word: "association", vi: "hiệp hội, sự liên kết", phonetics: "/əˌsəʊʃiˈeɪʃn/", pos: "n.", def: "an organization having a common interest", 
+                      examples: [
+                          { en: "Membership in an association provides business contacts.", vi: "Tư cách thành viên trong một hiệp hội cung cấp các mối liên hệ kinh doanh." },
+                          { en: "The American Medical Association holds an annual conference.", vi: "Hiệp hội Y khoa Hoa Kỳ tổ chức một hội nghị thường niên." }
+                      ] 
+                    },
+                    { word: "attend", vi: "tham dự", phonetics: "/əˈtend/", pos: "v.", def: "to go to", 
+                      examples: [
+                          { en: "We expect more than 100 members to attend the annual meeting.", vi: "Chúng tôi kỳ vọng có hơn 100 thành viên sẽ tham dự cuộc họp thường niên." },
+                          { en: "She was unable to attend the conference due to illness.", vi: "Cô ấy đã không thể tham dự hội nghị do bị ốm." }
+                      ] 
+                    },
+                    { word: "get in touch", vi: "liên lạc", phonetics: "/ɡet ɪn tʌtʃ/", pos: "v.", def: "to make contact with", 
+                      examples: [
+                          { en: "We will get in touch with the manager about the unexpected guests.", vi: "Chúng tôi sẽ liên lạc với người quản lý về những vị khách không mời mà đến." },
+                          { en: "Please get in touch with me as soon as you arrive.", vi: "Vui lòng liên lạc với tôi ngay khi bạn đến nơi." }
+                      ] 
+                    },
+                    { word: "hold", vi: "tổ chức, chứa đựng", phonetics: "/həʊld/", pos: "v.", def: "to accommodate; to conduct", 
+                      examples: [
+                          { en: "This meeting room holds at least 80 people comfortably.", vi: "Phòng họp này có sức chứa ít nhất 80 người một cách thoải mái." },
+                          { en: "The company will hold a press conference tomorrow.", vi: "Công ty sẽ tổ chức một buổi họp báo vào ngày mai." }
+                      ] 
+                    },
+                    { word: "location", vi: "địa điểm, vị trí", phonetics: "/ləʊˈkeɪʃn/", pos: "n.", def: "a position or site", 
+                      examples: [
+                          { en: "The location of the meeting was changed from the Red Room to the Green Room.", vi: "Địa điểm của cuộc họp đã được thay đổi từ Phòng Đỏ sang Phòng Xanh." },
+                          { en: "This hotel is situated in an ideal location.", vi: "Khách sạn này tọa lạc tại một vị trí vô cùng lý tưởng." }
+                      ] 
+                    },
+                    { word: "overcrowded", vi: "quá đông đúc", phonetics: "/ˌəʊvəˈkraʊdɪd/", pos: "adj.", def: "too crowded", 
+                      examples: [
+                          { en: "To avoid being overcrowded, we limited the number of guests.", vi: "Để tránh việc quá đông đúc, chúng tôi đã giới hạn số lượng khách." },
+                          { en: "The subway is always overcrowded during rush hour.", vi: "Tàu điện ngầm luôn trong tình trạng quá tải vào giờ cao điểm." }
+                      ] 
+                    },
+                    { word: "register", vi: "đăng ký", phonetics: "/ˈredʒɪstə(r)/", pos: "v.", def: "to record", 
+                      examples: [
+                          { en: "According to the register, more than 250 people attended.", vi: "Theo sổ đăng ký, đã có hơn 250 người tham dự." },
+                          { en: "You must register online before Friday.", vi: "Bạn phải đăng ký trực tuyến trước thứ Sáu." }
+                      ] 
+                    },
+                    { word: "select", vi: "chọn lựa", phonetics: "/sɪˈlekt/", pos: "v.", def: "to choose from a group", 
+                      examples: [
+                          { en: "The participant selected the marketing seminar from the offerings.", vi: "Người tham gia đã chọn buổi hội thảo tiếp thị trong số các dịch vụ được cung cấp." },
+                          { en: "Please select your preferred language.", vi: "Vui lòng chọn ngôn ngữ ưa thích của bạn." }
+                      ] 
+                    },
+                    { word: "session", vi: "phiên họp, kỳ họp", phonetics: "/ˈseʃn/", pos: "n.", def: "a meeting", 
+                      examples: [
+                          { en: "The morning sessions tend to fill up first, so sign up early.", vi: "Các phiên họp buổi sáng có xu hướng kín chỗ trước, vì vậy hãy đăng ký sớm." },
+                          { en: "The next training session will be held on Monday.", vi: "Phiên đào tạo tiếp theo sẽ được tổ chức vào thứ Hai." }
+                      ] 
+                    },
+                    { word: "take part in", vi: "tham gia", phonetics: "/teɪk pɑːt ɪn/", pos: "v.", def: "to join or participate", 
+                      examples: [
+                          { en: "We could not get enough people to take part in the meeting.", vi: "Chúng tôi không thể tập hợp đủ người tham gia vào cuộc họp." },
+                          { en: "Over 500 students took part in the competition.", vi: "Hơn 500 học sinh đã tham gia vào cuộc thi." }
+                      ] 
+                    }
+                ]
+            }
+        ];
+
+        let currentLesson = toeicData[0];
+        let currentCardIndex = 0;
+        let isFlipped = false;
+
+        // UI Elements
+        const sidebarMenu = document.getElementById('sidebar-menu');
+        const mainTitle = document.getElementById('main-title');
+        const wordGrid = document.getElementById('word-grid');
+        const quizletView = document.getElementById('quizlet-view');
+        
+        // App Init
+        function initApp() {
+            toeicData.forEach((lesson, index) => {
+                const li = document.createElement('li');
+                li.className = `menu-item ${index === 0 ? 'active' : ''}`;
+                li.textContent = lesson.title;
+                li.onclick = () => {
+                    document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+                    li.classList.add('active');
+                    currentLesson = lesson;
+                    currentCardIndex = 0;
+                    renderList();
+                    renderFlashcard();
+                };
+                sidebarMenu.appendChild(li);
+            });
+            renderList();
+            renderFlashcard();
+        }
+
+        // Switch Tabs (List / Quizlet)
+        function switchView(view) {
+            document.getElementById('btn-list').classList.remove('active');
+            document.getElementById('btn-quizlet').classList.remove('active');
+            document.getElementById(`btn-${view}`).classList.add('active');
+
+            if(view === 'list') {
+                wordGrid.style.display = 'grid';
+                quizletView.style.display = 'none';
+            } else {
+                wordGrid.style.display = 'none';
+                quizletView.style.display = 'flex';
+                renderFlashcard();
+            }
+        }
+
+        // Render List View
+        function renderList() {
+            mainTitle.textContent = currentLesson.title;
+            wordGrid.innerHTML = '';
+            currentLesson.words.forEach(data => {
+                const card = document.createElement('div');
+                card.className = 'flatcard';
+                
+                // Render Examples for List
+                let examplesHTML = '';
+                data.examples.forEach(ex => {
+                    examplesHTML += `
+                        <div class="example-item">
+                            <div class="ex-en">"${ex.en}"</div>
+                            <div class="ex-vi">${ex.vi}</div>
+                        </div>
+                    `;
+                });
+
+                card.innerHTML = `
+                    <div class="card-header">
+                        <h3 class="word">${data.word}</h3>
+                        <button class="speak-btn" onclick="playAudio('${data.word}')" title="Nghe phát âm">🔊</button>
+                    </div>
+                    <div class="lexical-info">
+                        <span class="phonetics">${data.phonetics}</span>
+                        <span class="pos">${data.pos}</span>
+                    </div>
+                    <div class="vi-meaning">🇻🇳 ${data.vi}</div>
+                    <div class="definition"><strong>Def:</strong> ${data.def}</div>
+                    <div class="examples-container">
+                        ${examplesHTML}
+                    </div>
+                `;
+                wordGrid.appendChild(card);
+            });
+        }
+
+        // Quizlet Logic
+        function renderFlashcard() {
+            isFlipped = false;
+            document.getElementById('flashcard').classList.remove('is-flipped');
+            
+            const wordData = currentLesson.words[currentCardIndex];
+            const mode = document.getElementById('card-mode').value;
+            
+            let actualMode = mode;
+            if (mode === 'mixed') {
+                actualMode = Math.random() > 0.5 ? 'en-vi' : 'vi-en';
+            }
+
+            const frontEl = document.getElementById('fc-front');
+            const backEl = document.getElementById('fc-back');
+
+            // Render Examples for Flashcard
+            let examplesHTML = '';
+            wordData.examples.forEach(ex => {
+                examplesHTML += `
+                    <div class="example-item" style="margin-bottom: 12px;">
+                        <div class="ex-en" style="color: var(--text-main);">"${ex.en}"</div>
+                        <div class="ex-vi">${ex.vi}</div>
+                    </div>
+                `;
+            });
+
+            const frontContent = `
+                <button class="fc-audio" onclick="playAudio('${wordData.word}'); event.stopPropagation();">🔊</button>
+                <div class="fc-word">${wordData.word}</div>
+                <div class="fc-phonetics">${wordData.phonetics} <span class="pos">${wordData.pos}</span></div>
+            `;
+            const backContent = `
+                <div class="fc-vi">🇻🇳 ${wordData.vi}</div>
+                <div class="fc-def"><strong>Def:</strong> ${wordData.def}</div>
+                <div class="examples-container" style="width: 100%;">
+                    ${examplesHTML}
+                </div>
+            `;
+
+            if (actualMode === 'en-vi') {
+                frontEl.innerHTML = frontContent;
+                backEl.innerHTML = backContent;
+            } else {
+                frontEl.innerHTML = `<div class="fc-vi" style="font-size: 2.5rem;">🇻🇳 ${wordData.vi}</div>`;
+                backEl.innerHTML = `
+                    <div style="position: relative; width: 100%; text-align: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color);">
+                        <button class="fc-audio" style="position: relative; top: 0; right: 0; margin-bottom: 10px;" onclick="playAudio('${wordData.word}'); event.stopPropagation();">🔊</button>
+                        <div class="fc-word" style="margin-bottom: 5px;">${wordData.word}</div>
+                        <div class="fc-phonetics">${wordData.phonetics} <span class="pos">${wordData.pos}</span></div>
+                    </div>
+                    <div class="fc-def"><strong>Def:</strong> ${wordData.def}</div>
+                    <div class="examples-container" style="width: 100%;">
+                        ${examplesHTML}
+                    </div>
+                `;
+            }
+
+            document.getElementById('fc-progress').textContent = `${currentCardIndex + 1} / ${currentLesson.words.length}`;
+        }
+
+        function flipCard() {
+            isFlipped = !isFlipped;
+            document.getElementById('flashcard').classList.toggle('is-flipped');
+        }
+
+        function nextCard() {
+            if (currentCardIndex < currentLesson.words.length - 1) {
+                currentCardIndex++;
+                renderFlashcard();
+            }
+        }
+
+        function prevCard() {
+            if (currentCardIndex > 0) {
+                currentCardIndex--;
+                renderFlashcard();
+            }
+        }
+
+        // Bắt sự kiện bàn phím cho Quizlet
+        document.addEventListener('keydown', (e) => {
+            if (quizletView.style.display === 'flex') {
+                if (e.code === 'Space') {
+                    e.preventDefault();
+                    flipCard();
+                } else if (e.code === 'ArrowRight') {
+                    nextCard();
+                } else if (e.code === 'ArrowLeft') {
+                    prevCard();
+                }
+            }
+        });
+
+        // Speech API
+        function playAudio(text) {
+            if ('speechSynthesis' in window) {
+                // Hủy các giọng đọc trước đó nếu click liên tục
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-US'; 
+                utterance.rate = 0.85; // Chỉnh tốc độ đọc chậm một chút cho dễ nghe
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // Start
+        initApp();
+    </script>
+</body>
+</html>
